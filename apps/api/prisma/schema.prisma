@@ -1,0 +1,217 @@
+// SplitEase data model.
+// All money columns are integers in the currency's minor unit (paise, cents…).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+generator pothos {
+  provider     = "prisma-pothos-types"
+  clientOutput = "./prisma/client.js"
+  output       = "../src/generated/pothos-types.ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GroupRole {
+  OWNER
+  MEMBER
+}
+
+enum SplitMode {
+  EQUAL
+  EXACT
+  PERCENT
+  SHARES
+}
+
+enum ExpenseCategory {
+  FOOD
+  GROCERIES
+  TRANSPORT
+  TRAVEL
+  STAY
+  RENT
+  UTILITIES
+  ENTERTAINMENT
+  SHOPPING
+  HEALTH
+  OTHER
+}
+
+enum ActivityType {
+  GROUP_CREATED
+  MEMBER_JOINED
+  EXPENSE_ADDED
+  EXPENSE_UPDATED
+  EXPENSE_DELETED
+  SETTLEMENT_ADDED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  /// null for placeholder friends that exist only inside a demo sandbox
+  passwordHash String?
+  avatarColor  String   @default("#6366F1")
+  createdAt    DateTime @default(now())
+
+  /// Set for throw-away "Try the demo" users and their fake friends; deleting
+  /// the sandbox owner cascades to everything they own.
+  demoOwnerId String?
+  demoOwner   User?   @relation("DemoSandbox", fields: [demoOwnerId], references: [id], onDelete: Cascade)
+  demoUsers   User[]  @relation("DemoSandbox")
+  isDemo      Boolean @default(false)
+
+  refreshTokens       RefreshToken[]
+  memberships         GroupMember[]
+  groupsCreated       Group[]        @relation("GroupCreator")
+  demoGroups          Group[]        @relation("DemoGroups")
+  expensesPaid        Expense[]      @relation("ExpensePayer")
+  expensesCreated     Expense[]      @relation("ExpenseCreator")
+  shares              ExpenseShare[]
+  settlementsPaid     Settlement[]   @relation("SettlementFrom")
+  settlementsReceived Settlement[]   @relation("SettlementTo")
+  settlementsCreated  Settlement[]   @relation("SettlementCreator")
+  activities          Activity[]
+
+  @@index([isDemo, createdAt])
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// HMAC-SHA256 of the opaque token; the raw token is never stored
+  tokenHash    String    @unique
+  /// All tokens descending from one login share a family; reuse of a rotated
+  /// token revokes the whole family.
+  familyId     String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  emoji       String   @default("👥")
+  currency    String   @default("INR")
+  inviteCode  String   @unique
+  createdById String
+  createdBy   User     @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  demoOwnerId String?
+  demoOwner   User?    @relation("DemoGroups", fields: [demoOwnerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+  activities  Activity[]
+}
+
+model GroupMember {
+  id       String    @id @default(cuid())
+  groupId  String
+  group    Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     GroupRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  groupId     String
+  group       Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  description String
+  amount      Int
+  currency    String
+  category    ExpenseCategory @default(OTHER)
+  splitMode   SplitMode       @default(EQUAL)
+  date        DateTime
+  notes       String?
+  paidById    String
+  paidBy      User            @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User            @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  shares     ExpenseShare[]
+  activities Activity[]
+
+  @@index([groupId, date(sort: Desc)])
+  @@index([groupId, category])
+}
+
+model ExpenseShare {
+  id        String  @id @default(cuid())
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// What this person owes for the expense, in minor units
+  amount    Int
+  /// The raw split input (exact minor units, basis points or share weight) so
+  /// an expense can be edited in the mode it was created with
+  value     Int?
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+}
+
+model Settlement {
+  id          String   @id @default(cuid())
+  groupId     String
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  fromUser    User     @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId    String
+  toUser      User     @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  amount      Int
+  currency    String
+  note        String?
+  date        DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("SettlementCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  activities Activity[]
+
+  @@index([groupId, date(sort: Desc)])
+}
+
+model Activity {
+  id           String       @id @default(cuid())
+  groupId      String
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  actorId      String
+  actor        User         @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  type         ActivityType
+  expenseId    String?
+  expense      Expense?     @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  settlementId String?
+  settlement   Settlement?  @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+  /// Human-readable snapshot (survives deletion of the expense)
+  summary      String
+  amount       Int?
+  currency     String?
+  createdAt    DateTime     @default(now())
+
+  @@index([groupId, createdAt(sort: Desc)])
+}

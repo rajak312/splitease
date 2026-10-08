@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: splitease-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: splitease
+      POSTGRES_PASSWORD: splitease
+      POSTGRES_DB: splitease
+    ports:
+      - '5436:5432'
+    volumes:
+      - splitease-pg:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U splitease -d splitease']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  splitease-pg:

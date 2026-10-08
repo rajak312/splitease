@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, typecheck & test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: splitease
+          POSTGRES_PASSWORD: splitease
+          POSTGRES_DB: splitease_test
+        ports:
+          - 5436:5432
+        options: >-
+          --health-cmd "pg_isready -U splitease"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://splitease:splitease@localhost:5436/splitease_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate (Prisma client, GraphQL schema, typed documents)
+        run: npm run generate
+
+      - name: Schema is up to date
+        run: git diff --exit-code apps/api/schema.graphql
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (shared money / split / debt maths)
+        run: npm test -w @splitease/shared
+
+      - name: API integration tests (real Postgres)
+        run: npm test -w @splitease/api
+
+      - name: App component tests (jest-expo + RNTL)
+        run: npm test -w @splitease/mobile
+
+  web-build:
+    name: Expo web export
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Codegen
+        run: npm run codegen -w @splitease/mobile
+
+      - name: expo export -p web
+        run: npm run build:web -w @splitease/mobile
+        env:
+          EXPO_PUBLIC_API_URL: https://splitease-api-lalit.vercel.app/graphql
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/mobile/dist
+          retention-days: 7

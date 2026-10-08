@@ -1,0 +1,10 @@
+node_modules
+dist
+.expo
+.vercel
+coverage
+package-lock.json
+apps/api/src/generated
+apps/api/prisma/migrations
+apps/mobile/src/graphql/generated
+apps/mobile/assets/expo.icon

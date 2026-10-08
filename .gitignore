@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+web-build/
+.expo/
+.vercel/
+*.tsbuildinfo
+coverage/
+
+# generated code (recreated by `npm run generate`)
+apps/api/src/generated/
+apps/mobile/src/graphql/generated/
+apps/mobile/expo-env.d.ts
+
+# native projects (Continuous Native Generation)
+apps/mobile/ios/
+apps/mobile/android/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.key
+*.jks
+*.mobileprovision
+
+# misc
+.DS_Store
+npm-debug.*
+.metro-health-check*
+*.orig.*

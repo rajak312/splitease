@@ -1,0 +1,30 @@
+{
+  "name": "@splitease/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Money, split and debt-simplification math plus zod schemas shared by the SplitEase app and API.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "@splitease/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=esm --platform=neutral --target=es2022 --external:zod --outfile=dist/index.js --log-level=warning",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "fast-check": "^4.10.2",
+    "vitest": "^5.0.3"
+  }
+}

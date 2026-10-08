@@ -1,0 +1,411 @@
+type Activity {
+  actor: User!
+  amount: SafeInt
+  createdAt: DateTime!
+  currency: String
+  expenseId: ID
+  group: Group!
+  id: ID!
+
+  """
+  Expense description, member name, or "A paid B".
+  """
+  summary: String!
+  type: ActivityType!
+}
+
+enum ActivityType {
+  EXPENSE_ADDED
+  EXPENSE_DELETED
+  EXPENSE_UPDATED
+  GROUP_CREATED
+  MEMBER_JOINED
+  SETTLEMENT_ADDED
+}
+
+"""
+Access token (JWT, 15 min) for the Authorization header, plus an opaque refresh token (30 days) that is rotated on every use.
+"""
+type AuthPayload {
+  accessToken: String!
+  accessTokenExpiresAt: DateTime!
+  refreshToken: String!
+  refreshTokenExpiresAt: DateTime!
+  user: User!
+}
+
+type CategoryTotal {
+  amount: SafeInt!
+  category: ExpenseCategory!
+  count: Int!
+}
+
+"""
+Overall position for one currency across all groups.
+"""
+type CurrencyTotal {
+  currency: String!
+  net: SafeInt!
+
+  """
+  Total others owe you
+  """
+  owed: SafeInt!
+
+  """
+  Total you owe others
+  """
+  owes: SafeInt!
+}
+
+type Dashboard {
+  friends: [FriendBalance!]!
+  totals: [CurrencyTotal!]!
+}
+
+"""
+ISO-8601 timestamp
+"""
+scalar DateTime
+
+"""
+One transfer in the simplified settlement plan: `from` pays `to` `amount`.
+"""
+type Debt {
+  amount: SafeInt!
+  from: User!
+  to: User!
+}
+
+type Expense {
+  amount: SafeInt!
+  category: ExpenseCategory!
+  createdAt: DateTime!
+  createdBy: User!
+  currency: String!
+  date: DateTime!
+  description: String!
+  group: Group!
+  id: ID!
+
+  """
+  The viewer's share of this expense (0 if not involved).
+  """
+  myShare: SafeInt!
+  notes: String
+  paidBy: User!
+  shares: [ExpenseShare!]!
+  splitMode: SplitMode!
+  updatedAt: DateTime!
+}
+
+enum ExpenseCategory {
+  ENTERTAINMENT
+  FOOD
+  GROCERIES
+  HEALTH
+  OTHER
+  RENT
+  SHOPPING
+  STAY
+  TRANSPORT
+  TRAVEL
+  UTILITIES
+}
+
+input ExpenseInput {
+  """
+  Minor units, e.g. 125050 = ₹1,250.50
+  """
+  amount: SafeInt!
+  category: ExpenseCategory
+  date: DateTime!
+  description: String!
+  notes: String
+  paidById: ID!
+  participants: [SplitParticipantInput!]!
+  splitMode: SplitMode!
+}
+
+type ExpenseShare {
+  amount: SafeInt!
+  id: ID!
+  user: User!
+
+  """
+  Raw split input: minor units (EXACT), basis points (PERCENT) or weight (SHARES).
+  """
+  value: Int
+}
+
+"""
+Net amount between the viewer and one person, summed over the simplified debts of every shared group.
+"""
+type FriendBalance {
+  amount: SafeInt!
+  currency: String!
+  user: User!
+}
+
+type Group {
+  activity(first: Int): [Activity!]!
+
+  """
+  Net balance of every member (sums to zero).
+  """
+  balances: [MemberBalance!]!
+
+  """
+  Spending per category, largest first.
+  """
+  categoryBreakdown: [CategoryTotal!]!
+  createdAt: DateTime!
+
+  """
+  ISO-4217 code; all amounts in this group use it.
+  """
+  currency: String!
+  emoji: String!
+  expenseCount: Int!
+  expenses(
+    after: String
+    before: String
+    category: ExpenseCategory
+    first: Int
+    last: Int
+
+    """
+    Case-insensitive match on description or notes
+    """
+    search: String
+  ): GroupExpensesConnection!
+  id: ID!
+  inviteCode: String!
+
+  """
+  Shareable web link. The app also handles splitease://join/<code>.
+  """
+  inviteUrl: String!
+  memberCount: Int!
+  members: [GroupMember!]!
+
+  """
+  The viewer's net balance in this group.
+  """
+  myBalance: SafeInt!
+  name: String!
+  settlements(first: Int): [Settlement!]!
+
+  """
+  Minimal-ish set of transfers that settles the whole group (greedy debt simplification).
+  """
+  simplifiedDebts: [Debt!]!
+  totalSpent: SafeInt!
+  updatedAt: DateTime!
+  viewerRole: GroupRole!
+}
+
+type GroupExpensesConnection {
+  edges: [GroupExpensesEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type GroupExpensesEdge {
+  cursor: String!
+  node: Expense!
+}
+
+input GroupInput {
+  """
+  ISO-4217 code, defaults to INR
+  """
+  currency: String
+  emoji: String
+  name: String!
+}
+
+type GroupMember {
+  id: ID!
+  joinedAt: DateTime!
+  role: GroupRole!
+  user: User!
+}
+
+enum GroupRole {
+  MEMBER
+  OWNER
+}
+
+type InvitePreview {
+  alreadyMember: Boolean!
+  code: String!
+  currency: String!
+  emoji: String!
+  groupId: ID!
+  memberCount: Int!
+  name: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+"""
+A member's net position in a group. Positive: they are owed money. Negative: they owe.
+"""
+type MemberBalance {
+  net: SafeInt!
+  user: User!
+}
+
+type Mutation {
+  createExpense(groupId: ID!, input: ExpenseInput!): Expense!
+  createGroup(input: GroupInput!): Group!
+
+  """
+  Delete an expense; returns its id.
+  """
+  deleteExpense(id: ID!): ID!
+  joinGroup(code: String!): Group!
+  login(input: LoginInput!): AuthPayload!
+
+  """
+  One-tap demo: creates a private, throw-away sandbox (you + 6 friends, 4 groups, realistic expenses) and signs you in. Sandboxes are deleted after 24 hours.
+  """
+  loginDemo: AuthPayload!
+
+  """
+  Revoke the refresh token (and every token rotated from the same login).
+  """
+  logout(refreshToken: String!): Boolean!
+
+  """
+  Exchange a refresh token for a new access + refresh token pair. The old refresh token stops working.
+  """
+  refreshSession(refreshToken: String!): AuthPayload!
+
+  """
+  Invalidate the current invite link (owner only).
+  """
+  regenerateInviteCode(groupId: ID!): Group!
+
+  """
+  Record a payment from one member to another.
+  """
+  settleUp(groupId: ID!, input: SettlementInput!): Settlement!
+  signUp(input: SignUpInput!): AuthPayload!
+  updateExpense(id: ID!, input: ExpenseInput!): Expense!
+  updateGroup(id: ID!, input: GroupInput!): Group!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Query {
+  """
+  Activity across all of the viewer's groups, newest first.
+  """
+  activity(after: String, before: String, first: Int, last: Int): QueryActivityConnection!
+
+  """
+  Overall "you owe / you are owed" across all groups, per currency.
+  """
+  dashboard: Dashboard!
+  expense(id: ID!): Expense!
+  group(id: ID!): Group!
+
+  """
+  Groups the viewer belongs to, most recently active first.
+  """
+  groups: [Group!]!
+  invitePreview(code: String!): InvitePreview!
+
+  """
+  The signed-in user, or null when not authenticated.
+  """
+  me: User
+}
+
+type QueryActivityConnection {
+  edges: [QueryActivityConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type QueryActivityConnectionEdge {
+  cursor: String!
+  node: Activity!
+}
+
+"""
+An integer between -(2^53-1) and 2^53-1. Used for money in minor units (e.g. paise).
+"""
+scalar SafeInt
+
+type Settlement {
+  amount: SafeInt!
+  createdBy: User!
+  currency: String!
+  date: DateTime!
+  from: User!
+  group: Group!
+  id: ID!
+  note: String
+  to: User!
+}
+
+input SettlementInput {
+  amount: SafeInt!
+  fromUserId: ID!
+  note: String
+  toUserId: ID!
+}
+
+input SignUpInput {
+  email: String!
+  name: String!
+  password: String!
+}
+
+"""
+EQUAL: evenly; EXACT: amounts in minor units; PERCENT: basis points (2500 = 25%); SHARES: weights
+"""
+enum SplitMode {
+  EQUAL
+  EXACT
+  PERCENT
+  SHARES
+}
+
+input SplitParticipantInput {
+  userId: ID!
+
+  """
+  Ignored for EQUAL; see SplitMode for units.
+  """
+  value: Int
+}
+
+type Subscription {
+  """
+  Fires when something happens in one group (groupId) or in any of the viewer's groups. Delivered over SSE.
+  """
+  activityAdded(groupId: ID): Activity!
+}
+
+type User {
+  avatarColor: String!
+
+  """
+  Only visible to the user themself; null for everyone else's profile.
+  """
+  email: String
+  id: ID!
+  isDemo: Boolean!
+  name: String!
+}

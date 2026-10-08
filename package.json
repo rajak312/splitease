@@ -1,0 +1,54 @@
+{
+  "name": "splitease",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SplitEase \u2014 split shared expenses with friends. React Native (iOS, Android, web) + GraphQL monorepo.",
+  "author": "Lalit Rajak <lalitrajak312@gmail.com>",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "postinstall": "npm run build -w @splitease/shared",
+    "dev:api": "npm run dev -w @splitease/api",
+    "dev:web": "npm run web -w @splitease/mobile",
+    "dev:mobile": "npm run start -w @splitease/mobile",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @splitease/api",
+    "db:seed": "npm run db:seed -w @splitease/api",
+    "db:reset": "npm run db:reset -w @splitease/api",
+    "generate": "npm run generate -w @splitease/api && npm run codegen -w @splitease/mobile",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build:web": "npm run build:web -w @splitease/mobile",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9",
+    "puppeteer-core": "^25.12.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "prisma": true,
+    "@prisma/engines": true,
+    "unrs-resolver": true
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "SplitEase",
+    "slug": "splitease",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "splitease",
+    "userInterfaceStyle": "automatic",
+    "description": "Split shared expenses with friends — groups, smart debt simplification and multi-currency balances.",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.splitease.mobile",
+      "associatedDomains": ["applinks:splitease-lalit.vercel.app"]
+    },
+    "android": {
+      "package": "app.splitease.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#059669",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "splitease-lalit.vercel.app",
+              "pathPrefix": "/join"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "SplitEase — split expenses with friends",
+      "shortName": "SplitEase",
+      "themeColor": "#059669",
+      "backgroundColor": "#F8FAFC"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#059669",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96
+        }
+      ],
+      "expo-secure-store",
+      "expo-asset"
+    ],
+    "experiments": {
+      "reactCompiler": true
+    }
+  }
+}

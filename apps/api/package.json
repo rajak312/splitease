@@ -1,0 +1,49 @@
+{
+  "name": "@splitease/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
+    "start": "tsx --env-file-if-exists=.env src/server.ts",
+    "generate": "prisma generate && tsx scripts/print-schema.ts",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "vercel-build": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@envelop/core": "^5.6.1",
+    "@escape.tech/graphql-armor": "^3.2.0",
+    "@graphql-yoga/plugin-disable-introspection": "^2.25.2",
+    "@node-rs/argon2": "^2.2.2",
+    "@pothos/core": "^4.15.1",
+    "@pothos/plugin-prisma": "^4.17.0",
+    "@pothos/plugin-relay": "^4.8.1",
+    "@pothos/plugin-scope-auth": "^4.2.1",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "@splitease/shared": "*",
+    "@vercel/functions": "^3.9.11",
+    "dataloader": "^2.2.3",
+    "graphql": "^16.14.2",
+    "graphql-yoga": "^5.24.2",
+    "jose": "^6.2.12",
+    "pg": "^8.23.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^18.0.6",
+    "prisma": "^7.10.0",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}
