@@ -37,4 +37,4 @@ export const POLL_INTERVAL_MS = 15_000;
 
 export const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://splitease-lalit.vercel.app';
 
-export const GITHUB_URL = 'https://github.com/rajak312/splitease';
+export const GITHUB_URL = 'https://github.com/lalitkumarrajak/splitease';

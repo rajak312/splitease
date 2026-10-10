@@ -231,7 +231,7 @@ With a custom domain (app and API on the same site), the refresh token could mov
 Prerequisites: Node 24 (npm 11), Docker.
 
 ```bash
-git clone https://github.com/rajak312/splitease && cd splitease
+git clone https://github.com/lalitkumarrajak/splitease && cd splitease
 npm install                       # also builds packages/shared
 cp apps/api/.env.example apps/api/.env
 npm run db:up                     # Postgres 17 on localhost:5436 (container: splitease-db)
